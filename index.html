@@ -287,7 +287,8 @@
 <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
 <script>
   window.OneSignalDeferred = window.OneSignalDeferred || [];
-  OneSignalDeferred.push(async function(OneSignal) {
+  window.OneSignalDeferred.push(async function(OneSignal) {
+    window.__oneSignal = OneSignal;
     await OneSignal.init({
       appId: "361b8fa8-98d7-463c-8ed8-9eef4c5864ad",
       serviceWorkerPath: "planner-/service-worker.js",
@@ -817,7 +818,18 @@ function updateNotifButton(){
 $('#notifBtn').addEventListener('click', async ()=>{
   if(!('Notification' in window)) return;
   if(Notification.permission === 'default'){
-    await Notification.requestPermission();
+    try{
+      if(window.__oneSignal && window.__oneSignal.Notifications && window.__oneSignal.Notifications.requestPermission){
+        await window.__oneSignal.Notifications.requestPermission();
+      } else {
+        await Notification.requestPermission();
+      }
+    }catch(e){
+      await Notification.requestPermission();
+    }
+  } else if(Notification.permission === 'granted' && window.__oneSignal){
+    // اجازه از قبل هست؛ مطمئن شو OneSignal هم واقعاً مشترک کرده
+    try{ await window.__oneSignal.User.PushSubscription.optIn(); }catch(e){}
   }
   updateNotifButton();
 });
